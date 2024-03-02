@@ -158,7 +158,6 @@ class TestTodo(TodoTest):
 
     def test_put_item_extra_field(self):
         self._populate_records([TODO_1])
-
         todo = {"extra": "extra"}
         response = self.client.put('/api/v1/todos/1', json=todo)
         self.assertEqual(response.status_code, 400)
