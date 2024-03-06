@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request 
 from todo.models import db 
 from todo.models.todo import Todo 
-from datetime import datetime
+from datetime import datetime, timedelta
  
 api = Blueprint('api', __name__, url_prefix='/api/v1') 
 
@@ -22,28 +22,29 @@ def health():
 
 
 @api.route('/todos', methods=['GET'])
-def get_todos(): 
-   result = [] 
+def get_todos():
+    """Return the list of todo items"""
+    completed = request.args.get('completed')
+    window = request.args.get('window')
 
-   if request.args.get('completed') == 'true':
-      todos = Todo.query.filter_by(completed=True).all()
-   else:
-      todos = Todo.query.all()
+    # the following is the non-orm way of completing 
+    # the completed and window requirements.
 
-   window = int(request.args.get('window', 0))
-   current_time = datetime.strptime("2023-02-27T00:00:00", "%Y-%m-%dT%H:%M:%S")
+    todos = Todo.query.all()
+    result = []
+    for todo in todos:
 
-   if request.args.get('window') is not None:
-         for todo in todos:
-            deadline_datetime = request.args.get('deadline_at', todo.deadline_at)
-            if (deadline_datetime - current_time).days <= window:
-               result.append(todo.to_dict())
-         return jsonify(result)
+        if completed is not None:
+            if str(todo.completed).lower() != completed:
+                continue
 
-   for todo in todos: 
-      result.append(todo.to_dict()) 
+        if window is not None:
+            date_limit = datetime.utcnow() + timedelta(days=int(window))
+            if todo.deadline_at > date_limit:
+                continue
 
-   return jsonify(result)
+        result.append(todo.to_dict())
+    return jsonify(result)
 
 
 @api.route('/todos/<int:todo_id>', methods=['GET']) 
